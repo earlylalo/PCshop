@@ -217,33 +217,49 @@ Public Class Form3
             MessageBox.Show("Backup file created successfully.", "Successful!")
         End If
     End Sub
-
+    ' Print the uploaded data in the DataGridView 
     Private Sub PrintBTN_Click(sender As Object, e As EventArgs) Handles PrintBTN.Click
-        ' Set the path to the template file
-        Dim templatePath As String = "template\template.xlsx"
+        ' Set the license context for EPPlus
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial
 
-        ' Load the template file using EPPlus
-        Dim template As New ExcelPackage(New FileInfo(templatePath))
+        ' Load the Excel template
+        Dim templateFilePath As String = "D:\Microsoft Visual Studio\PCshop\PCshop\template\template.xlsx"
+        Using template As New ExcelPackage(New FileInfo(templateFilePath))
+            ' Specify the name of the worksheet
+            Dim worksheetName As String = "template"
 
-        ' Get the worksheet to copy data to
-        Dim worksheet As ExcelWorksheet = template.Workbook.Worksheets("Sheet1")
+            ' Check if the template contains the desired worksheet
+            Dim worksheet As ExcelWorksheet = template.Workbook.Worksheets(worksheetName)
+            If worksheet Is Nothing Then
+                ' Handle the case when the specified worksheet is not found
+                MessageBox.Show("Worksheet '" & worksheetName & "' not found in the Excel template.")
+            Else
+                ' Copy the data from the DataGridView to the worksheet starting from the 4th row
+                Dim startRow As Integer = 4
+                For i As Integer = 0 To dataTable.Rows.Count - 1
+                    For j As Integer = 1 To dataTable.Columns.Count - 1 ' Start from column 1 to ignore the first column
+                        worksheet.Cells(i + startRow, j).Value = dataTable.Rows(i)(j).ToString()
+                    Next
+                Next
 
-        ' Set the starting row to 4
-        Dim startRow As Integer = 4
+                ' Prompt the user to select the output file name and location
+                Dim saveFileDialog As New SaveFileDialog()
+                saveFileDialog.Filter = "Excel Files|*.xlsx"
+                saveFileDialog.Title = "Save Output File"
+                saveFileDialog.FileName = "output.xlsx"
 
-        ' Copy the data from the DataGridView to the Excel worksheet
-        For i As Integer = 0 To dataTable.Rows.Count - 1
-            Dim row As DataRow = dataTable.Rows(i)
-            For j As Integer = 0 To dataTable.Columns.Count - 1
-                worksheet.Cells(startRow + i, j + 1).Value = row(j).ToString()
-            Next
-        Next
+                If saveFileDialog.ShowDialog() = DialogResult.OK Then
+                    ' Get the selected file path from the SaveFileDialog
+                    Dim outputFilePath As String = saveFileDialog.FileName
 
-        ' Save the changes to the template file
-        template.Save()
+                    ' Save the updated Excel file with the selected file name and location
+                    template.SaveAs(New FileInfo(outputFilePath))
 
-        ' Open the template file for printing
-        Process.Start(templatePath)
+                    ' Open the updated Excel file using the default application associated with .xlsx files
+                    Process.Start(New ProcessStartInfo(outputFilePath) With {.UseShellExecute = True})
+                End If
+            End If
+        End Using
     End Sub
 
 End Class
